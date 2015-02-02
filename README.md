@@ -28,3 +28,10 @@ Compiling the library and running the example can be done as follows:
 coffee -b -c proc.coffee
 coffee -b example-proc.coffee
 ```
+
+Now to run Agda code directly you need to have recent Agda installed
+together with a recent agda-stdlib:
+
+```
+./run.sh example1
+```
