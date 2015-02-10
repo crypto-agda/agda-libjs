@@ -1,4 +1,4 @@
-define ["exports","proc"], (libagda,libproc) ->
+define ["exports"], (libagda) ->
 
   fst = (x) -> x["proj₁"]
   snd = (x) -> x["proj₂"]
@@ -28,7 +28,7 @@ define ["exports","proc"], (libagda,libproc) ->
                   go xs
     go l0
     Object.freeze a
-  libagda.fromList = fromList
+  libagda.fromList = (_A) -> (_B) -> (l) -> (fromElt) -> fromList l, fromElt
 
   objectFromList = (l0, key, val) ->
     o = {}
@@ -40,7 +40,7 @@ define ["exports","proc"], (libagda,libproc) ->
                 go xs
     go l0
     Object.freeze o
-  libagda.objectFromList = objectFromList
+  libagda.objectFromList = (_A) -> (l) -> (key) -> (val) -> objectFromList l, key, val
 
   fromValue = (v) ->
     v
@@ -61,34 +61,61 @@ define ["exports","proc"], (libagda,libproc) ->
   libagda.nil = nil
   libagda.cons = cons
 
-  libagda.onString = (f) -> (x) ->
+  libagda.viewJSValue = (v) -> (w) ->
+    switch typeof(v)
+      when "array"  then w.array(v)
+      when "object" then w.object(v)
+      when "string" then w.string(v)
+      when "number" then w.number(v)
+      when "bool"   then w.bool(v)
+      when "null"   then w.null()
+      else throw "viewJSValue: IMPOSSIBLE"
+
+  libagda.onString = (_A) -> (f) -> (x) ->
     if typeof x is "string"
       f x
     else
       throw "onString(): not a string"
 
-  fromJSArray = (a) -> (f) -> foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
-  libagda.fromJSArray = fromJSArray
+  libagda.onJSArray = (_A) -> (f) -> (x) ->
+    if typeof x is "array"
+      f x
+    else
+      throw "onJSArray(): not a string"
 
-  fromJSArrayString = (a) -> (fromJSArray a) ((i) -> (x) -> String(x))
-  libagda.fromJSArrayString = fromJSArrayString
+  decodeJSArray = (a) -> (f) -> foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
+  libagda.decodeJSArray = (_A) -> (_B) -> decodeJSArray
 
   libagda.trace = (_A) -> (_B) -> (s) -> (a) -> (f) ->
     console.log "trace: #{s}#{a}";
     f a
 
-  runJSCmd = (x) ->
-    x
-      server:      (ip, port, proc, cb) ->
-                    libproc.server ip, port, proc, (uri) ->
-                      runJSCmd cb uri
-      client:      (proc, cb) -> libproc.client proc, () -> runJSCmd cb
-      end:         () -> { }
-      assert:      (b, cb) ->
-                      throw "assert false" unless b
-                      runJSCmd cb
-      console_log: (s, cb) -> console.log s; runJSCmd cb
-      process_argv: (cb) -> runJSCmd cb fromJSArrayString process.argv
-  libagda.runJSCmd = runJSCmd
+  libagda.throw = (_A) -> (s) -> (_x) -> throw s
+
+  libagda.assert = (b) -> (cb) -> throw "assert false" unless b; cb()
+
+  libagda.process =
+    exit: (code) -> (cb) -> process.exit code; cb()
+    argv: (cb) -> cb(process.argv)
+
+  # FFI.JS.Console.log : (msg : String) → Callback0
+  libagda.console =
+    log: (s) -> (cb) -> console.log s; cb()
+
+  # TODO move into a libagda-fs library which can depend on fs
+  libagda.fs =
+    readFile: (filename) -> (options) -> (callback) -> require("fs").readFile filename, options, callback
+
+  # JS! :=
+  #   end : JS!
+  #   _!₁_: {A : Set}(cmd : JSCmd ((A → 𝟘) → 𝟘))(cb : A → JS!) → JS!
+  #   _!₂_: {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
+  runJS = (v) ->
+    v
+      end:    () -> process.exit 0
+      "_!₁_": (_A, cmd, k) -> cmd (x) -> runJS(k(x))
+      "_!₂_": (_A, _B, cmd, k) -> cmd (x,y) -> runJS(k(x)(y))
+
+  libagda.runJS = runJS
 
   return libagda

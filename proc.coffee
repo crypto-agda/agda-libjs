@@ -41,6 +41,8 @@
 # # A process which fails with the given error message (err)
 # error : (err : String) → JSProc
 #
+# serverCurry and clientCurry are curry versions of server and client
+#
 # #############
 # ## Example ##
 # #############
@@ -270,4 +272,7 @@ define ["exports"
   exports.recv   = (uri, proc) -> (p) -> p.recv(uri, proc)
   exports.spawn  = (proc0, proc1) -> (p) -> p.spawn(proc0, proc1)
   exports.error  = (err) -> (p) -> p.error(err)
+
+  exports.serverCurry = (ip) -> (port) -> (proc) -> (callback) -> server ip, port, proc, callback
+  exports.clientCurry = (proc) -> (callback) -> client proc, callback
   exports

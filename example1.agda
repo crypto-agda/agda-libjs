@@ -6,8 +6,18 @@ open import Data.List.Base using (List; []; _∷_)
 open import Data.Bool.Base
 open import Function
 
-open import FFI.JS as JS
 open import Control.Process.Type
+
+open import FFI.JS as JS
+open import FFI.JS.Proc
+import FFI.JS.Console as Console
+import FFI.JS.Process as Process
+import FFI.JS.FS      as FS
+
+postulate take-half : String → String
+{-# COMPILED_JS take-half function(x) { return x.substring(0,x.length/2); } #-}
+postulate drop-half : String → String
+{-# COMPILED_JS drop-half function(x) { return x.substring(x.length/2); } #-}
 
 test-value : Value
 test-value = object (("array"  , array (array [] ∷ array (array [] ∷ []) ∷ [])) ∷
@@ -35,8 +45,11 @@ module _ {A : Set} (_≤_ : A → A → Bool) where
 merge-sort-string : String → String → String
 merge-sort-string s₀ s₁ = List▹String (merge-sort-list _≤Char_ (String▹List s₀) (String▹List s₁))
 
+mapJSArray : (JSArray String → JSArray String) → JSValue → JSValue
+mapJSArray f v = fromString (onString (join "" ∘ f ∘ split "") v)
+
 reverser : URI → JSProc
-reverser d = recv d λ s → send d (fromString (onString JS.reverse s)) end
+reverser d = recv d λ s → send d (mapJSArray JS.reverse s) end
 
 adder : URI → JSProc
 adder d = recv d λ s₀ → recv d λ s₁ → send d (s₀ +JS s₁) end
@@ -55,7 +68,7 @@ module _ (adder-addr reverser-addr : URI)(s : JSValue) where
     end
 
 str-sorter₀ : URI → JSProc
-str-sorter₀ d = recv d λ s → send d (fromString (onString sort s)) end
+str-sorter₀ d = recv d λ s → send d (mapJSArray sort s) end
 
 str-sorter-client : ∀ {D} → D → JSValue → Proc D JSValue
 str-sorter-client d s = send d s $ recv d λ _ → end
@@ -89,25 +102,28 @@ stringifier d = recv d λ v → send d (fromString (JSON-stringify v)) end
 stringifier-client : ∀ {D} → D → JSValue → Proc D JSValue
 stringifier-client d v = send d v $ recv d λ _ → end
 
-main : JSCmd
+main : JS!
 main =
-  assert test $
-  console_log "server(adder):" $
-  server "127.0.0.1" "1337" adder λ adder-uri →
-  console_log "client(adderclient):" $
-  client (adder-client adder-uri (fromString "Hello ") (fromString "World!")) $
-  client (adder-client adder-uri (fromString "Bonjour ") (fromString "monde!")) $
-  console_log "server(reverser):" $
-  server "127.0.0.1" "1338" reverser λ reverser-uri →
-  console_log "client(adder-reverser-client):" $
-  client (adder-reverser-client adder-uri reverser-uri (fromString "red")) $
+  Console.log "Hey!" >> assert test >>
+  Process.argv !₁ λ argv → Console.log ("argv=" ++ join " " argv) >>
+  Console.log "server(adder):" >> server "127.0.0.1" "1337" adder !₁ λ adder-uri →
+  Console.log "client(adderclient):" >>
+  client (adder-client adder-uri (fromString "Hello ") (fromString "World!")) >>
+  client (adder-client adder-uri (fromString "Bonjour ") (fromString "monde!")) >>
+  Console.log "server(reverser):" >>
+  server "127.0.0.1" "1338" reverser !₁ λ reverser-uri →
+  Console.log "client(adder-reverser-client):" >>
+  client (adder-reverser-client adder-uri reverser-uri (fromString "red")) >>
 
-  server "127.0.0.1" "1342" str-sorter₂ λ str-sorter₂-uri →
-  console_log "str-sorter-client:" $
-  client (str-sorter-client str-sorter₂-uri (fromString "Something to be sorted!")) $
+  server "127.0.0.1" "1342" str-sorter₂ !₁ λ str-sorter₂-uri →
+  Console.log "str-sorter-client:" >>
+  client (str-sorter-client str-sorter₂-uri (fromString "Something to be sorted!")) >>
 
-  server "127.0.0.1" "1343" stringifier λ stringifier-uri →
-  client (stringifier-client stringifier-uri (fromValue test-value)) $
+  server "127.0.0.1" "1343" stringifier !₁ λ stringifier-uri →
+  client (stringifier-client stringifier-uri (fromValue test-value)) >>
+  FS.readFile "README.md" nullJS !₂ λ err dat →
+  Console.log ("README.md, length is " ++ Number▹String (length (castString dat))) >>
+  Console.log "Bye!" >>
   end
 -- -}
 -- -}
