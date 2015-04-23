@@ -24,14 +24,26 @@ postulate
 postulate readNumber : String → Number
 {-# COMPILED_JS readNumber Number #-}
 
-postulate zero : Number
-{-# COMPILED_JS zero 0 #-}
+postulate 0N : Number
+{-# COMPILED_JS 0N 0 #-}
 
-postulate one : Number
-{-# COMPILED_JS one 1 #-}
+postulate 1N : Number
+{-# COMPILED_JS 1N 1 #-}
+
+postulate 2N : Number
+{-# COMPILED_JS 2N 2 #-}
 
 postulate _+_ : Number → Number → Number
 {-# COMPILED_JS _+_ function(x) { return function(y) { return x + y; }; } #-}
+
+postulate _−_ : Number → Number → Number
+{-# COMPILED_JS _−_ function(x) { return function(y) { return x - y; }; } #-}
+
+postulate _*_ : Number → Number → Number
+{-# COMPILED_JS _*_ function(x) { return function(y) { return x * y; }; } #-}
+
+postulate _/_ : Number → Number → Number
+{-# COMPILED_JS _/_ function(x) { return function(y) { return x / y; }; } #-}
 
 infixr 5  _++_
 postulate _++_ : String → String → String
@@ -42,6 +54,15 @@ postulate _+JS_ : JSValue → JSValue → JSValue
 
 postulate _≤JS_ : JSValue → JSValue → Bool
 {-# COMPILED_JS _≤JS_ function(x) { return function(y) { return x <= y; }; } #-}
+
+postulate _<JS_ : JSValue → JSValue → Bool
+{-# COMPILED_JS _<JS_ function(x) { return function(y) { return x < y; }; } #-}
+
+postulate _>JS_ : JSValue → JSValue → Bool
+{-# COMPILED_JS _>JS_ function(x) { return function(y) { return x > y; }; } #-}
+
+postulate _≥JS_ : JSValue → JSValue → Bool
+{-# COMPILED_JS _≥JS_ function(x) { return function(y) { return x >= y; }; } #-}
 
 postulate _===_ : JSValue → JSValue → Bool
 {-# COMPILED_JS _===_ function(x) { return function(y) { return x === y; }; } #-}
@@ -192,11 +213,38 @@ fromObject o = objectFromList o fst snd
 _≤Char_ : Char → Char → Bool
 x ≤Char y = fromChar x ≤JS fromChar y
 
+_<Char_ : Char → Char → Bool
+x <Char y = fromChar x <JS fromChar y
+
+_>Char_ : Char → Char → Bool
+x >Char y = fromChar x >JS fromChar y
+
+_≥Char_ : Char → Char → Bool
+x ≥Char y = fromChar x ≥JS fromChar y
+
 _≤String_ : String → String → Bool
 x ≤String y = fromString x ≤JS fromString y
 
+_<String_ : String → String → Bool
+x <String y = fromString x <JS fromString y
+
+_>String_ : String → String → Bool
+x >String y = fromString x >JS fromString y
+
+_≥String_ : String → String → Bool
+x ≥String y = fromString x ≥JS fromString y
+
 _≤Number_ : Number → Number → Bool
 x ≤Number y = fromNumber x ≤JS fromNumber y
+
+_<Number_ : Number → Number → Bool
+x <Number y = fromNumber x <JS fromNumber y
+
+_>Number_ : Number → Number → Bool
+x >Number y = fromNumber x >JS fromNumber y
+
+_≥Number_ : Number → Number → Bool
+x ≥Number y = fromNumber x ≥JS fromNumber y
 
 _·«_» : JSValue → String → JSValue
 v ·« s » = v ·[ fromString s ]
@@ -220,6 +268,14 @@ Callback2 A B = JSCmd ((A → B → 𝟘) → 𝟘)
 
 postulate assert : Bool → Callback0
 {-# COMPILED_JS assert require("libagda").assert #-}
+
+check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
+check true  errmsg x = x
+check false errmsg x = throw (errmsg _) x
+
+warn-check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
+warn-check true  errmsg x = x
+warn-check false errmsg x = trace ("Warning: " ++ errmsg _) x id
 
 infixr 0  _>>_ _!₁_ _!₂_
 data JS! : Set₁ where
