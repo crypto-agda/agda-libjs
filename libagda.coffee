@@ -106,16 +106,9 @@ define ["exports"], (libagda) ->
   libagda.fs =
     readFile: (filename) -> (options) -> (callback) -> require("fs").readFile filename, options, callback
 
-  # JS! :=
-  #   end : JS!
-  #   _!₁_: {A : Set}(cmd : JSCmd ((A → 𝟘) → 𝟘))(cb : A → JS!) → JS!
-  #   _!₂_: {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
-  runJS = (v) ->
-    v
-      end:    () -> process.exit 0
-      "_!₁_": (_A, cmd, k) -> cmd (x) -> runJS(k(x))
-      "_!₂_": (_A, _B, cmd, k) -> cmd (x,y) -> runJS(k(x)(y))
-
-  libagda.runJS = runJS
+  # call1 : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
+  libagda.call1 = (_A) ->         (cmd) -> (k) -> (cb) -> cmd (x)   -> k(x)(cb)
+  # call2 : {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
+  libagda.call2 = (_A) -> (_B) -> (cmd) -> (k) -> (cb) -> cmd (x,y) -> k(x)(y)(cb)
 
   return libagda

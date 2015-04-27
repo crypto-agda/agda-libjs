@@ -296,13 +296,13 @@ postulate JSCmd : Set → Set
 Callback1 : Set → Set
 Callback1 A = JSCmd ((A → 𝟘) → 𝟘)
 
-Callback0 : Set
-Callback0 = Callback1 𝟙
+JS! : Set
+JS! = Callback1 𝟙
 
 Callback2 : Set → Set → Set
 Callback2 A B = JSCmd ((A → B → 𝟘) → 𝟘)
 
-postulate assert : Bool → Callback0
+postulate assert : Bool → JS!
 {-# COMPILED_JS assert require("libagda").assert #-}
 
 check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
@@ -314,13 +314,16 @@ warn-check true  errmsg x = x
 warn-check false errmsg x = trace ("Warning: " ++ errmsg _) x id
 
 infixr 0  _>>_ _!₁_ _!₂_
-data JS! : Set₁ where
-  end  : JS!
-  _!₁_ : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
-  _!₂_ : {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
 
-_>>_ : Callback0 → JS! → JS!
+postulate _!₁_ : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
+{-# COMPILED_JS _!₁_ require("libagda").call1 #-}
+
+postulate _!₂_ : {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
+{-# COMPILED_JS _!₂_ require("libagda").call2 #-}
+
+_>>_ : JS! → JS! → JS!
 cmd >> cont = cmd !₁ λ _ → cont
+
 -- -}
 -- -}
 -- -}

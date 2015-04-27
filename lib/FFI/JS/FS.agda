@@ -12,7 +12,7 @@ TODO:
 
 -- http://nodejs.org/api/fs.html#fs_fs_readfile_filename_options_callback
 postulate readFile : (filename : String)(options : JSValue)
-                   → JSCmd (((err : String)(dat : JSValue) → 𝟘) → 𝟘)
+                   → JSCmd (((err : JSValue)(dat : JSValue) → 𝟘) → 𝟘)
 {-# COMPILED_JS readFile require("libagda").fs.readFile #-}
 
   -- To some extent the JSCmd should be a monad for this kind of things.
