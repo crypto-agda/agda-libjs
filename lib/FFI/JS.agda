@@ -198,6 +198,9 @@ postulate trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
 postulate throw : {A : Set} → String → A → A
 {-# COMPILED_JS throw require("libagda").throw #-}
 
+postulate is-null : JSValue → Bool
+{-# COMPILED_JS is-null function(x) { return (x == null); } #-}
+
 data Value : Set₀ where
   array  : List Value → Value
   object : List (String × Value) → Value
