@@ -33,6 +33,39 @@ postulate 1N : Number
 postulate 2N : Number
 {-# COMPILED_JS 2N 2 #-}
 
+postulate 4N : Number
+{-# COMPILED_JS 4N 4 #-}
+
+postulate 8N : Number
+{-# COMPILED_JS 8N 8 #-}
+
+postulate 16N : Number
+{-# COMPILED_JS 16N 16 #-}
+
+postulate 32N : Number
+{-# COMPILED_JS 32N 32 #-}
+
+postulate 64N : Number
+{-# COMPILED_JS 64N 64 #-}
+
+postulate 128N : Number
+{-# COMPILED_JS 128N 128 #-}
+
+postulate 256N : Number
+{-# COMPILED_JS 256N 256 #-}
+
+postulate 512N : Number
+{-# COMPILED_JS 512N 512 #-}
+
+postulate 1024N : Number
+{-# COMPILED_JS 1024N 1024 #-}
+
+postulate 2048N : Number
+{-# COMPILED_JS 2048N 2048 #-}
+
+postulate 4096N : Number
+{-# COMPILED_JS 4096N 4096 #-}
+
 postulate _+_ : Number → Number → Number
 {-# COMPILED_JS _+_ function(x) { return function(y) { return x + y; }; } #-}
 
