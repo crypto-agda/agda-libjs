@@ -27,5 +27,5 @@ postulate server : (ip port  : String)
                  → Callback1 URI
 {-# COMPILED_JS server require("proc").serverCurry #-}
 
-postulate client : JSProc → Callback0
+postulate client : JSProc → JS!
 {-# COMPILED_JS client require("proc").clientCurry #-}
