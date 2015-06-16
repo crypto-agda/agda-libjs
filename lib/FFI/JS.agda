@@ -305,14 +305,6 @@ Callback2 A B = JSCmd ((A → B → 𝟘) → 𝟘)
 postulate assert : Bool → JS!
 {-# COMPILED_JS assert require("libagda").assert #-}
 
-check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
-check true  errmsg x = x
-check false errmsg x = throw (errmsg _) x
-
-warn-check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
-warn-check true  errmsg x = x
-warn-check false errmsg x = trace ("Warning: " ++ errmsg _) x id
-
 infixr 0  _>>_ _!₁_ _!₂_
 
 postulate _!₁_ : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
