@@ -112,6 +112,13 @@ postulate split : (sep target : String) → JSArray String
 postulate join : (sep : String)(target : JSArray String) → String
 {-# COMPILED_JS join function(sep) { return function(target) { return target.join(sep); }; } #-}
 
+postulate substring : String → Number → Number → String
+{-# COMPILED_JS substring require("libagda").substring #-}
+
+-- substring with only one argument provided
+postulate substring1 : String → Number → String
+{-# COMPILED_JS substring1 require("libagda").substring1 #-}
+
 postulate fromList : {A B : Set}(xs : List A)(fromElt : A → B) → JSArray B
 {-# COMPILED_JS fromList require("libagda").fromList #-}
 
@@ -181,6 +188,9 @@ castChar = String▹Char ∘ castString
 postulate nullJS : JSValue
 {-# COMPILED_JS nullJS null #-}
 
+postulate undefinedJS : JSValue
+{-# COMPILED_JS undefinedJS undefined #-}
+
 postulate _·[_] : JSValue → JSValue → JSValue
 {-# COMPILED_JS _·[_] require("libagda").readProp #-}
 
@@ -190,6 +200,12 @@ postulate _Array[_] : {A : Set} → JSArray A → Number → A
 -- Writes 'msg' and 'inp' to the console and then returns `f inp`
 postulate trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
 {-# COMPILED_JS trace require("libagda").trace #-}
+
+-- Same type as trace but does not print anything
+-- Usage:
+--   open import FFI.JS renaming (no-trace to trace)
+no-trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
+no-trace _ inp f = f inp
 
 postulate throw : {A : Set} → String → A → A
 {-# COMPILED_JS throw require("libagda").throw #-}

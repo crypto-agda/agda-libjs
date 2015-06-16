@@ -103,6 +103,9 @@ define ["exports"], (libagda) ->
     else
       throw "StringToChar: Expecting a string of length 1 not " + s.length
 
+  libagda.substring  = (s) -> (i) -> (j) -> s.substring(i,j)
+  libagda.substring1 = (s) -> (i) ->        s.substring(i)
+
   # TODO move into a libagda-fs library which can depend on fs
   libagda.fs =
     readFile: (filename) -> (options) -> (callback) -> require("fs").readFile filename, options, callback
