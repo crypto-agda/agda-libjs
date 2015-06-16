@@ -14,16 +14,17 @@ import FFI.JS.Console as Console
 import FFI.JS.Process as Process
 import FFI.JS.FS      as FS
 
-postulate take-half : String → String
-{-# COMPILED_JS take-half function(x) { return x.substring(0,x.length/2); } #-}
-postulate drop-half : String → String
-{-# COMPILED_JS drop-half function(x) { return x.substring(x.length/2); } #-}
+take-half : String → String
+take-half s = substring s 0N (length s / 2N)
+
+drop-half : String → String
+drop-half s = substring1 s (length s / 2N)
 
 test-value : Value
 test-value = object (("array"  , array (array [] ∷ array (array [] ∷ []) ∷ [])) ∷
                      ("object" , array (object [] ∷ object (("a", string "b") ∷ []) ∷ [])) ∷
                      ("string" , array (string "" ∷ string "a" ∷ [])) ∷
-                     ("number" , array (number zero ∷ number one ∷ [])) ∷
+                     ("number" , array (number 0N ∷ number 1N ∷ [])) ∷
                      ("bool"   , array (bool true ∷ bool false ∷ [])) ∷
                      ("null"   , array (null ∷ [])) ∷ [])
 
@@ -46,7 +47,7 @@ merge-sort-string : String → String → String
 merge-sort-string s₀ s₁ = List▹String (merge-sort-list _≤Char_ (String▹List s₀) (String▹List s₁))
 
 mapJSArray : (JSArray String → JSArray String) → JSValue → JSValue
-mapJSArray f v = fromString (onString (join "" ∘ f ∘ split "") v)
+mapJSArray f v = fromString (join "" ∘ f ∘ split "" ∘ castString $ v)
 
 reverser : URI → JSProc
 reverser d = recv d λ s → send d (mapJSArray JS.reverse s) end
@@ -77,11 +78,11 @@ module _ (upstream helper₀ helper₁ : URI) where
   str-merger : JSProc
   str-merger =
     recv upstream λ s →
-    send helper₀ (fromString (onString take-half s)) $
-    send helper₁ (fromString (onString drop-half s)) $
+    send helper₀ (fromString (take-half (castString s))) $
+    send helper₁ (fromString (drop-half (castString s))) $
     recv helper₀ λ ss₀ →
     recv helper₁ λ ss₁ →
-    send upstream (fromString (onString (onString merge-sort-string ss₀) ss₁))
+    send upstream (fromString (merge-sort-string (castString ss₀) (castString ss₁)))
     end
 
 dyn-merger : URI → (URI → JSProc) → JSProc
@@ -115,6 +116,10 @@ main =
   Console.log "client(adder-reverser-client):" >>
   client (adder-reverser-client adder-uri reverser-uri (fromString "red")) >>
 
+  server "127.0.0.1" "1339" str-sorter₀ !₁ λ str-sorter₀-uri →
+  Console.log "str-sorter-client for str-sorter₀:" >>
+  client (str-sorter-client str-sorter₀-uri (fromString "Something to be sorted!")) >>
+
   server "127.0.0.1" "1342" str-sorter₂ !₁ λ str-sorter₂-uri →
   Console.log "str-sorter-client:" >>
   client (str-sorter-client str-sorter₂-uri (fromString "Something to be sorted!")) >>
@@ -122,9 +127,8 @@ main =
   server "127.0.0.1" "1343" stringifier !₁ λ stringifier-uri →
   client (stringifier-client stringifier-uri (fromValue test-value)) >>
   FS.readFile "README.md" nullJS !₂ λ err dat →
-  Console.log ("README.md, length is " ++ Number▹String (length (castString dat))) >>
-  Console.log "Bye!" >>
-  end
+  Console.log ("README.md, length is " ++ Number▹String (length (toString dat))) >>
+  Console.log "Bye!"
 -- -}
 -- -}
 -- -}
