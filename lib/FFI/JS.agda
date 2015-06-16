@@ -154,27 +154,29 @@ postulate objectFromList : {A : Set}(xs : List A)(fromKey : A → String)(fromVa
 postulate decodeJSArray : {A B : Set}(arr : JSArray A)(fromElt : Number → A → B) → List B
 {-# COMPILED_JS decodeJSArray require("libagda").decodeJSArray #-}
 
+postulate String▹Char : String → Char
+{-# COMPILED_JS String▹Char require("libagda").StringToChar #-}
+
+postulate checkTypeof : (type : String) → JSValue → JSValue
+{-# COMPILED_JS checkTypeof require("libagda").checkTypeof #-}
+
 postulate castNumber : JSValue → Number
-{-# COMPILED_JS castNumber Number #-}
+{-# COMPILED_JS castNumber require("libagda").checkTypeof("number") #-}
 
 postulate castString : JSValue → String
-{-# COMPILED_JS castString String #-}
+{-# COMPILED_JS castString require("libagda").checkTypeof("string") #-}
 
--- TODO dyn check of length 1?
-postulate castChar : JSValue → Char
-{-# COMPILED_JS castChar String #-}
-
--- TODO dyn check of length 1?
-postulate String▹Char : String → Char
-{-# COMPILED_JS String▹Char String #-}
-
--- TODO dyn check?
 postulate castJSArray : JSValue → JSArray JSValue
-{-# COMPILED_JS castJSArray function(x) { return x; } #-}
+{-# COMPILED_JS castJSArray require("libagda").checkTypeof("array") #-}
 
--- TODO dyn check?
 postulate castJSObject : JSValue → JSObject
-{-# COMPILED_JS castJSObject function(x) { return x; } #-}
+{-# COMPILED_JS castJSObject require("libagda").checkTypeof("object") #-}
+
+postulate castBool : JSValue → Bool
+{-# COMPILED_JS castBool require("libagda").checkTypeof("bool") #-}
+
+castChar : JSValue → Char
+castChar = String▹Char ∘ castString
 
 postulate nullJS : JSValue
 {-# COMPILED_JS nullJS null #-}
@@ -184,12 +186,6 @@ postulate _·[_] : JSValue → JSValue → JSValue
 
 postulate _Array[_] : {A : Set} → JSArray A → Number → A
 {-# COMPILED_JS _Array[_] function(ty) { return require("libagda").readProp; } #-}
-
-postulate onJSArray : {A : Set} (f : JSArray JSValue → A) → JSValue → A
-{-# COMPILED_JS onJSArray require("libagda").onJSArray #-}
-
-postulate onString : {A : Set} (f : String → A) → JSValue → A
-{-# COMPILED_JS onString require("libagda").onString #-}
 
 -- Writes 'msg' and 'inp' to the console and then returns `f inp`
 postulate trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
@@ -238,7 +234,7 @@ String▹List : String → List Char
 String▹List s = decodeJSArray (split "" s) (λ _ → String▹Char)
 
 Number▹String : Number → String
-Number▹String = castString ∘ fromNumber
+Number▹String = toString ∘ fromNumber
 
 JSArray▹ListString : {A : Set} → JSArray A → List A
 JSArray▹ListString a = decodeJSArray a (λ _ → id)

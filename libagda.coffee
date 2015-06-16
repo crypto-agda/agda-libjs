@@ -71,20 +71,15 @@ define ["exports"], (libagda) ->
       when "null"   then w.null()
       else throw "viewJSValue: IMPOSSIBLE"
 
-  libagda.onString = (_A) -> (f) -> (x) ->
-    if typeof x is "string"
-      f x
+  libagda.checkTypeof = (ty) -> (x) ->
+    my = typeof x
+    if my is ty
+      x
     else
-      throw "onString(): not a string"
+      throw "checkTypeof(): expected a #{ty} not a #{my}"
 
-  libagda.onJSArray = (_A) -> (f) -> (x) ->
-    if typeof x is "array"
-      f x
-    else
-      throw "onJSArray(): not a string"
-
-  decodeJSArray = (a) -> (f) -> foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
-  libagda.decodeJSArray = (_A) -> (_B) -> decodeJSArray
+  libagda.decodeJSArray = (_A) -> (_B) -> (a) -> (f) ->
+    foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
 
   libagda.trace = (_A) -> (_B) -> (s) -> (a) -> (f) ->
     console.log "trace: #{s}#{a}";
@@ -101,6 +96,12 @@ define ["exports"], (libagda) ->
   # FFI.JS.Console.log : (msg : String) → Callback0
   libagda.console =
     log: (s) -> (cb) -> console.log s; cb()
+
+  libagda.StringToChar = (s) ->
+    if s.length is 1
+      s
+    else
+      throw "StringToChar: Expecting a string of length 1 not " + s.length
 
   # TODO move into a libagda-fs library which can depend on fs
   libagda.fs =
