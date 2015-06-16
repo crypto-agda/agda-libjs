@@ -325,8 +325,12 @@ postulate _!₁_ : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
 postulate _!₂_ : {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
 {-# COMPILED_JS _!₂_ require("libagda").call2 #-}
 
-_>>_ : JS! → JS! → JS!
-cmd >> cont = cmd !₁ λ _ → cont
+postulate _>>_ : JS! → JS! → JS!
+{-# COMPILED_JS _>>_ function(x) { return function (y) { return require("libagda").call1("*")(x)(function (z) { return y; }); }; } #-}
+-- Unfortunately so far such a definition can have a poor run-time semantics, where the second
+-- is needlessly computed. Worse given the use of partial functions such as assert, throw,
+-- cast{String,Number...} this can lead to abort the program.
+-- cmd >> cont = cmd !₁ λ _ → cont
 
 -- -}
 -- -}
