@@ -52,7 +52,12 @@ define ["exports"], (libagda) ->
       null:   () -> null
   libagda.fromValue = fromValue
 
-  libagda.readProp = (x) -> (y) -> x[y]
+  libagda.readProp = (x) -> (y) ->
+    z = x[y]
+    if z
+      z
+    else
+      throw "readProp(): undefined property #{y} for #{x}"
 
   tt   = (x) -> x.record()
   nil  = (l) -> l["[]"]()
