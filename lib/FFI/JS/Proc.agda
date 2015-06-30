@@ -15,16 +15,16 @@ JSProc = Proc URI JSValue
 {-
 postulate server : (ip port  : String)
                    (proc     : URI → JSProc)
-                   (callback : URI → JSCmd) → JSCmd
+                   (callback : URI → JS!) → JS!
 {-# COMPILED_JS server require("proc").serverCurry #-}
 
-postulate client : JSProc → JSCmd → JSCmd
+postulate client : JSProc → JS! → JS!
 {-# COMPILED_JS client require("proc").clientCurry #-}
 -}
 
 postulate server : (ip port  : String)
                    (proc     : URI → JSProc)
-                 → Callback1 URI
+                 → JS[ URI ]
 {-# COMPILED_JS server require("proc").serverCurry #-}
 
 postulate client : JSProc → JS!

@@ -305,32 +305,44 @@ trace-call s f x = trace s (f x) id
 
 postulate JSCmd : Set → Set
 
-Callback1 : Set → Set
-Callback1 A = JSCmd ((A → 𝟘) → 𝟘)
+JS[_] : Set → Set
+JS[ A ] = JSCmd ((A → 𝟘) → 𝟘)
+
+-- Old name
+Callback1 = JS[_]
 
 JS! : Set
-JS! = Callback1 𝟙
+JS! = JS[ 𝟙 ]
 
-Callback2 : Set → Set → Set
-Callback2 A B = JSCmd ((A → B → 𝟘) → 𝟘)
+JS[_,_] : Set → Set → Set
+JS[ A , B ] = JSCmd ((A → B → 𝟘) → 𝟘)
+
+Callback2 = JS[_,_]
 
 postulate assert : Bool → JS!
 {-# COMPILED_JS assert require("libagda").assert #-}
 
+{- Note about _!₁_ _!₂_ and _>>_, instead of using the corresponding call0, call1,
+   call2 from libagda. It's preferable to inline their definitions as compiled
+   statements. The reason is that these COMPILED_JS statements uses a call-by-name
+   semantics with strong reduction.
+
+   The worse is for _>>_ which would have a poor run-time semantics,
+   where the second command is needlessly computed.
+   Worse given the use of partial functions such as throw, checkTypeof
+   cast{String,Number...} this can lead to abort the program.
+-}
+
 infixr 0  _>>_ _!₁_ _!₂_
 
-postulate _!₁_ : {A : Set}(cmd : Callback1 A)(cb : A → JS!) → JS!
-{-# COMPILED_JS _!₁_ require("libagda").call1 #-}
+postulate _!₁_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
+{-# COMPILED_JS _!₁_ function(A) { return function(B) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
 
-postulate _!₂_ : {A B : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS!) → JS!
-{-# COMPILED_JS _!₂_ require("libagda").call2 #-}
+postulate _!₂_ : {A B C : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS[ C ]) → JS[ C ]
+{-# COMPILED_JS _!₂_ function(A) { return function(B) { return function(C) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x, y) { return k(x)(y)(cb); }); }; }; }; }; }; } #-}
 
-postulate _>>_ : JS! → JS! → JS!
-{-# COMPILED_JS _>>_ function(x) { return function (y) { return require("libagda").call1("*")(x)(function (z) { return y; }); }; } #-}
--- Unfortunately so far such a definition can have a poor run-time semantics, where the second
--- is needlessly computed. Worse given the use of partial functions such as assert, throw,
--- cast{String,Number...} this can lead to abort the program.
--- cmd >> cont = cmd !₁ λ _ → cont
+postulate _>>_ : {A : Set} → JS! → JS[ A ] → JS[ A ]
+{-# COMPILED_JS _>>_ function(A) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(cb); }); }; }; }; } #-}
 
 -- -}
 -- -}

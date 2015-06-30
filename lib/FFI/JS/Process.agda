@@ -8,5 +8,5 @@ postulate exit : JSCmd ((code : Number) → 𝟘)
 {-# COMPILED_JS exit require("libagda").process.exit #-}
 
 -- http://nodejs.org/api/process.html#process_process_argv
-postulate argv : Callback1 (JSArray String)
+postulate argv : JS[ JSArray String ]
 {-# COMPILED_JS argv require("libagda").process.argv #-}
