@@ -322,6 +322,9 @@ Callback2 = JS[_,_]
 postulate assert : Bool → JS!
 {-# COMPILED_JS assert require("libagda").assert #-}
 
+postulate return : {A : Set}(x : A) → JS[ A ]
+{-# COMPILED_JS return function(A) { return function(x) { return function(cb) { return cb(x); }; }; } #-}
+
 {- Note about _!₁_ _!₂_ and _>>_, instead of using the corresponding call0, call1,
    call2 from libagda. It's preferable to inline their definitions as compiled
    statements. The reason is that these COMPILED_JS statements uses a call-by-name
