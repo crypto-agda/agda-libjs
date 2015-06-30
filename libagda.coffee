@@ -98,7 +98,7 @@ define ["exports"], (libagda) ->
     exit: (code) -> (cb) -> process.exit code; cb()
     argv: (cb) -> cb(process.argv)
 
-  # FFI.JS.Console.log : (msg : String) → Callback0
+  # FFI.JS.Console.log : (msg : String) → JS!
   libagda.console =
     log: (s) -> (cb) -> console.log s; cb()
 

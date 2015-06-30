@@ -325,7 +325,7 @@ postulate assert : Bool → JS!
 postulate return : {A : Set}(x : A) → JS[ A ]
 {-# COMPILED_JS return function(A) { return function(x) { return function(cb) { return cb(x); }; }; } #-}
 
-{- Note about _!₁_ _!₂_ and _>>_, instead of using the corresponding call0, call1,
+{- Note about _>>_, _>>=_ and _>>==_, instead of using the corresponding call0, call1,
    call2 from libagda. It's preferable to inline their definitions as compiled
    statements. The reason is that these COMPILED_JS statements uses a call-by-name
    semantics with strong reduction.
@@ -336,13 +336,13 @@ postulate return : {A : Set}(x : A) → JS[ A ]
    cast{String,Number...} this can lead to abort the program.
 -}
 
-infixr 0  _>>_ _!₁_ _!₂_
+infixr 0  _>>_ _>>=_ _>>==_
 
-postulate _!₁_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
-{-# COMPILED_JS _!₁_ function(A) { return function(B) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
+postulate _>>=_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
+{-# COMPILED_JS _>>=_ function(A) { return function(B) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
 
-postulate _!₂_ : {A B C : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS[ C ]) → JS[ C ]
-{-# COMPILED_JS _!₂_ function(A) { return function(B) { return function(C) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x, y) { return k(x)(y)(cb); }); }; }; }; }; }; } #-}
+postulate _>>==_ : {A B C : Set}(cmd : JS[ A , B ])(cb : A → B → JS[ C ]) → JS[ C ]
+{-# COMPILED_JS _>>==_ function(A) { return function(B) { return function(C) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x, y) { return k(x)(y)(cb); }); }; }; }; }; }; } #-}
 
 postulate _>>_ : {A : Set} → JS! → JS[ A ] → JS[ A ]
 {-# COMPILED_JS _>>_ function(A) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(cb); }); }; }; }; } #-}

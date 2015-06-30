@@ -106,27 +106,27 @@ stringifier-client d v = send d v $ recv d λ _ → end
 main : JS!
 main =
   Console.log "Hey!" >> assert test >>
-  Process.argv !₁ λ argv → Console.log ("argv=" ++ join " " argv) >>
-  Console.log "server(adder):" >> server "127.0.0.1" "1337" adder !₁ λ adder-uri →
+  Process.argv >>= λ argv → Console.log ("argv=" ++ join " " argv) >>
+  Console.log "server(adder):" >> server "127.0.0.1" "1337" adder >>= λ adder-uri →
   Console.log "client(adderclient):" >>
   client (adder-client adder-uri (fromString "Hello ") (fromString "World!")) >>
   client (adder-client adder-uri (fromString "Bonjour ") (fromString "monde!")) >>
   Console.log "server(reverser):" >>
-  server "127.0.0.1" "1338" reverser !₁ λ reverser-uri →
+  server "127.0.0.1" "1338" reverser >>= λ reverser-uri →
   Console.log "client(adder-reverser-client):" >>
   client (adder-reverser-client adder-uri reverser-uri (fromString "red")) >>
 
-  server "127.0.0.1" "1339" str-sorter₀ !₁ λ str-sorter₀-uri →
+  server "127.0.0.1" "1339" str-sorter₀ >>= λ str-sorter₀-uri →
   Console.log "str-sorter-client for str-sorter₀:" >>
   client (str-sorter-client str-sorter₀-uri (fromString "Something to be sorted!")) >>
 
-  server "127.0.0.1" "1342" str-sorter₂ !₁ λ str-sorter₂-uri →
+  server "127.0.0.1" "1342" str-sorter₂ >>= λ str-sorter₂-uri →
   Console.log "str-sorter-client:" >>
   client (str-sorter-client str-sorter₂-uri (fromString "Something to be sorted!")) >>
 
-  server "127.0.0.1" "1343" stringifier !₁ λ stringifier-uri →
+  server "127.0.0.1" "1343" stringifier >>= λ stringifier-uri →
   client (stringifier-client stringifier-uri (fromValue test-value)) >>
-  FS.readFile "README.md" nullJS !₂ λ err dat →
+  FS.readFile "README.md" nullJS >>== λ err dat →
   Console.log ("README.md, length is " ++ Number▹String (length (toString dat))) >>
   Console.log "Bye!"
 -- -}
