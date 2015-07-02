@@ -1,0 +1,4 @@
+{
+      "name": "agda-libjs",
+      "devDependencies": { "sha256": "^0.2.0", "requirejs": "2.1.17" }
+}
