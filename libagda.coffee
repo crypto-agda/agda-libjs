@@ -87,7 +87,7 @@ define ["exports"], (libagda) ->
     foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
 
   libagda.trace = (_A) -> (_B) -> (s) -> (a) -> (f) ->
-    console.log "trace: #{s}#{a}";
+    console.log "trace: #{s}#{JSON.stringify(a) || a}";
     f a
 
   libagda.throw = (_A) -> (s) -> (_x) -> throw s
