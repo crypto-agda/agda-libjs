@@ -1,16 +1,15 @@
+{-# OPTIONS --without-K #-}
 open import FFI.JS hiding (toString)
 
 module FFI.JS.BigI where
 
-abstract
-  BigI : Set
-  BigI = JSValue
+postulate BigI : Set
 
-  BigI▹JSValue : BigI → JSValue
-  BigI▹JSValue x = x
+postulate BigI▹JSValue : BigI → JSValue
+{-# COMPILED_JS BigI▹JSValue function(x) { return x; } #-}
 
-  unsafe-JSValue▹BigI : JSValue → BigI
-  unsafe-JSValue▹BigI x = x
+postulate unsafe-JSValue▹BigI : JSValue → BigI
+{-# COMPILED_JS unsafe-JSValue▹BigI function(x) { return x; } #-}
 
 postulate bigI     : (x base : String) → BigI
 {-# COMPILED_JS bigI       function(x) { return function (y) { return require("bigi")(x,y); }; } #-}

@@ -3,12 +3,13 @@ module FFI.JS.Proc where
 open import FFI.JS
 open import Control.Process.Type
 
-abstract
-  URI = String
-  showURI : URI → String
-  showURI x = x
-  readURI : String → URI
-  readURI x = x
+postulate URI : Set
+
+postulate showURI : URI → String
+{-# COMPILED_JS showURI function(x) { return x; } #-}
+
+postulate readURI : String → URI
+{-# COMPILED_JS readURI function(x) { return x; } #-}
 
 JSProc = Proc URI JSValue
 
