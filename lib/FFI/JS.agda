@@ -155,6 +155,9 @@ postulate fromJSArray : {A : Set} → JSArray A → JSValue
 postulate fromJSObject : JSObject → JSValue
 {-# COMPILED_JS fromJSObject function(x) { return x; } #-}
 
+postulate fromAny : {A : Set} → A → JSValue
+{-# COMPILED_JS fromAny function(A) { return function(x) { return x; }; } #-}
+
 postulate objectFromList : {A : Set}(xs : List A)(fromKey : A → String)(fromVal : A → JSValue) → JSObject
 {-# COMPILED_JS objectFromList require("libagda").objectFromList #-}
 
