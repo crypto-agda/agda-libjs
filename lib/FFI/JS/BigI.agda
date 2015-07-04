@@ -1,5 +1,9 @@
 {-# OPTIONS --without-K #-}
 open import FFI.JS hiding (toString)
+open import Type.Eq using (Eq?)
+open import Data.Bool.Base using (Bool; true; false) renaming (T to ✓)
+open import Relation.Binary.Core using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality.TrustMe using (trustMe)
 
 module FFI.JS.BigI where
 
@@ -85,3 +89,23 @@ x >I y = compareTo x y >Number 0N
 
 _≥I_ : BigI → BigI → Bool
 x ≥I y = compareTo x y ≥Number 0N
+
+-- This is a postulates which computes as much as it needs
+equals-refl : ∀ {x : BigI} → ✓ (equals x x)
+equals-refl {x} with equals x x
+... | true  = _
+... | false = STUCK where postulate STUCK : _
+
+instance
+  BigI-Eq? : Eq? BigI
+  BigI-Eq? = record
+    { _==_ = _==_
+    ; ≡⇒== = ≡⇒==
+    ; ==⇒≡ = ==⇒≡ }
+    module BigI-Eq? where
+      _==_ : BigI → BigI → Bool
+      _==_ = equals
+      ≡⇒== : ∀ {x y} → x ≡ y → ✓ (x == y)
+      ≡⇒== refl = equals-refl
+      ==⇒≡ : ∀ {x y} → ✓ (x == y) → x ≡ y
+      ==⇒≡ _ = trustMe
