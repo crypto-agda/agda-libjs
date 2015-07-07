@@ -6,15 +6,16 @@ define ["exports"], (libagda) ->
   id = (x) -> x
   libagda.id = id
 
-  foldrArray = (a, nil, cons) ->
+  foldr = (a) -> (nil) -> (cons) ->
     len = a.length
     l = nil
     i = len - 1
     while i >= 0
-      l = cons i, a[i], l
+      l = cons(i)(a[i])(l)
       i--
     l
-  libagda.foldrArray = foldrArray
+  libagda.foldrArray  = (_A) -> (_B) -> foldr
+  libagda.foldrString = (_A) ->         foldr
 
   fromList = (l0, fromElt) ->
     a = []
@@ -52,19 +53,12 @@ define ["exports"], (libagda) ->
       null:   () -> null
   libagda.fromValue = fromValue
 
-  libagda.readProp = (x) -> (y) ->
+  libagda.readProp = (x) -> (y) -> (cb) ->
     z = x[y]
     if z
-      z
+      cb z
     else
       throw "readProp(): undefined property #{y} for #{x}"
-
-  tt   = (x) -> x.record()
-  nil  = (l) -> l["[]"]()
-  cons = (x, xs) -> (l) -> l["_∷_"](x, xs)
-  libagda.tt = tt
-  libagda.nil = nil
-  libagda.cons = cons
 
   libagda.viewJSValue = (v) -> (w) ->
     switch typeof(v)
@@ -74,37 +68,40 @@ define ["exports"], (libagda) ->
       when "number" then w.number(v)
       when "bool"   then w.bool(v)
       when "null"   then w.null()
-      else throw "viewJSValue: IMPOSSIBLE"
+      else               w.error(v)
 
-  libagda.checkTypeof = (ty) -> (x) ->
+  libagda.checkTypeof = (ty) -> (x) -> (cb) ->
     my = typeof x
     if my is ty
-      x
+      cb x
     else
       throw "checkTypeof(): expected a #{ty} not a #{my}"
-
-  libagda.decodeJSArray = (_A) -> (_B) -> (a) -> (f) ->
-    foldrArray a, nil, (i,x,xs) -> cons ((f i) x), xs
 
   libagda.trace = (_A) -> (_B) -> (s) -> (a) -> (f) ->
     console.log "trace: #{s}#{JSON.stringify(a) || a}";
     f a
 
-  libagda.throw = (_A) -> (s) -> (_x) -> throw s
+  libagda.throw = (_A) -> (s) -> (_cb) -> throw s
+
+  libagda.catch = (_A) -> (cmd) -> (handler) -> (cb) ->
+    try
+      cmd(cb)
+    catch error
+      handler(error)(cb)
 
   libagda.assert = (b) -> (cb) -> throw "assert false" unless b; cb()
 
   libagda.process =
     exit: (code) -> (cb) -> process.exit code; cb()
-    argv: (cb) -> cb(process.argv)
+    argv: (cb) -> cb process.argv
 
   # FFI.JS.Console.log : (msg : String) → JS!
   libagda.console =
     log: (s) -> (cb) -> console.log s; cb()
 
-  libagda.StringToChar = (s) ->
+  libagda.StringToChar = (s) -> (cb) ->
     if s.length is 1
-      s
+      cb s
     else
       throw "StringToChar: Expecting a string of length 1 not " + s.length
 
@@ -115,11 +112,25 @@ define ["exports"], (libagda) ->
   libagda.fs =
     readFile: (filename) -> (options) -> (callback) -> require("fs").readFile filename, options, callback
 
-  # call0 : {A : Set} → JS! → JS[ A ] → JS[ A ]
-  libagda.call0 = (_A) ->                 (cmd) -> (k) -> (cb) -> cmd (_x)  -> k(cb)
-  # call1 : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
-  libagda.call1 = (_A) -> (_B) ->         (cmd) -> (k) -> (cb) -> cmd (x)   -> k(x)(cb)
-  # call2 : {A B C : Set}(cmd : JSCmd ((A → B → 𝟘) → 𝟘))(cb : A → B → JS[ C ]) → JS[ C ]
-  libagda.call2 = (_A) -> (_B) -> (_C) -> (cmd) -> (k) -> (cb) -> cmd (x,y) -> k(x)(y)(cb)
+  # _>>_ : {A : Set} → JS! → JS[ A ] → JS[ A ]
+  libagda["_>>_"]  = (_A) ->                 (cmd) -> (k) -> (cb) -> cmd (_x)  -> k(cb)
+
+  # _>>=_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
+  libagda["_>>=_"] = (_A) -> (_B) ->         (cmd) -> (k) -> (cb) -> cmd (x)   -> k(x)(cb)
+
+  # _=<<_ : {A B : Set}(cb : A → JS[ B ])(cmd : JS[ A ]) → JS[ B ]
+  libagda["_>>=_"] = (_A) -> (_B) ->         (k)   -> (cmd) -> (cb) -> cmd (x)   -> k(x)(cb)
+
+  # _<*>_ : {A B : Set}(cmd : JS[ A → B ])(cmd2 : JS[ A ]) → JS[ B ]
+  libagda["_<*>_"] = (_A) -> (_B) ->         (cmd) -> (cmd2) -> (cb) -> cmd (f) -> cmd2 (x) -> cb(f(x))
+
+  # _>>==_ : {A B C : Set}(cmd : JS[ A , B ])(cb : A → B → JS[ C ]) → JS[ C ]
+  libagda["_>>=="] = (_A) -> (_B) -> (_C) -> (cmd) -> (k) -> (cb) -> cmd (x,y) -> k(x)(y)(cb)
+
+  # _<=<_ : {A B C : Set}(f : B → JS[ C ])(g : A → JS[ B ]) → A → JS[ C ]
+  libagda["_<=<_"] = (_A) -> (_B) -> (_C) -> (f) -> (g) -> (x) -> (cb) -> g(x) (y) -> f(y)(cb)
+
+  # _<$>_ : {A B : Set}(f : A → B)(cmd : JS[ A ]) → JS[ B ]
+  libagda["_<$>_"] = (_A) -> (_B) ->         (f) -> (cmd) -> (cb) -> cmd (x) -> cb(f(x))
 
   return libagda

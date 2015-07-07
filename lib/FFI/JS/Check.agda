@@ -4,8 +4,8 @@ module FFI.JS.Check where
 open import FFI.JS
 import FFI.JS.Console as Console
 
-check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A
-check true  errmsg x = x
+check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → JS[ A ]
+check true  errmsg x = return x
 check false errmsg x = throw (errmsg _) x
 
 warn-check : {A : Set}(pred : Bool)(errmsg : 𝟙 → String)(input : A) → A

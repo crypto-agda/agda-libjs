@@ -20,6 +20,21 @@ postulate
   JSArray  : Set → Set
   JSObject : Set
   JSValue  : Set
+  JSCmd    : Set → Set
+
+JS[_] : Set → Set
+JS[ A ] = JSCmd ((A → 𝟘) → 𝟘)
+
+-- Old name
+Callback1 = JS[_]
+
+JS! : Set
+JS! = JS[ 𝟙 ]
+
+JS[_,_] : Set → Set → Set
+JS[ A , B ] = JSCmd ((A → B → 𝟘) → 𝟘)
+
+Callback2 = JS[_,_]
 
 postulate readNumber : String → Number
 {-# COMPILED_JS readNumber Number #-}
@@ -156,7 +171,7 @@ postulate fromNumber : Number → JSValue
 {-# COMPILED_JS fromNumber function(x) { return x; } #-}
 
 postulate fromJSArray : {A : Set} → JSArray A → JSValue
-{-# COMPILED_JS fromJSArray function(ty) { return function(x) { return x; }; } #-}
+{-# COMPILED_JS fromJSArray function(A) { return function(x) { return x; }; } #-}
 
 postulate fromJSObject : JSObject → JSValue
 {-# COMPILED_JS fromJSObject function(x) { return x; } #-}
@@ -167,32 +182,32 @@ postulate fromAny : {A : Set} → A → JSValue
 postulate objectFromList : {A : Set}(xs : List A)(fromKey : A → String)(fromVal : A → JSValue) → JSObject
 {-# COMPILED_JS objectFromList require("libagda").objectFromList #-}
 
-postulate decodeJSArray : {A B : Set}(arr : JSArray A)(fromElt : Number → A → B) → List B
-{-# COMPILED_JS decodeJSArray require("libagda").decodeJSArray #-}
+postulate foldrArray : {A B : Set}(arr : JSArray A)(nil : B)(cons : Number → A → B → B) → B
+{-# COMPILED_JS foldrArray require("libagda").foldrArray #-}
 
-postulate String▹Char : String → Char
+postulate foldrString : {A : Set}(s : String)(nil : A)(cons : Number → Char → A → A) → A
+{-# COMPILED_JS foldrString require("libagda").foldrString #-}
+
+postulate String▹Char : String → JS[ Char ]
 {-# COMPILED_JS String▹Char require("libagda").StringToChar #-}
 
-postulate checkTypeof : (type : String) → JSValue → JSValue
+postulate checkTypeof : (type : String) → JSValue → JS[ JSValue ]
 {-# COMPILED_JS checkTypeof require("libagda").checkTypeof #-}
 
-postulate castNumber : JSValue → Number
+postulate castNumber : JSValue → JS[ Number ]
 {-# COMPILED_JS castNumber require("libagda").checkTypeof("number") #-}
 
-postulate castString : JSValue → String
+postulate castString : JSValue → JS[ String ]
 {-# COMPILED_JS castString require("libagda").checkTypeof("string") #-}
 
-postulate castJSArray : JSValue → JSArray JSValue
+postulate castJSArray : JSValue → JS[ JSArray JSValue ]
 {-# COMPILED_JS castJSArray require("libagda").checkTypeof("array") #-}
 
-postulate castJSObject : JSValue → JSObject
+postulate castJSObject : JSValue → JS[ JSObject ]
 {-# COMPILED_JS castJSObject require("libagda").checkTypeof("object") #-}
 
-postulate castBool : JSValue → Bool
+postulate castBool : JSValue → JS[ Bool ]
 {-# COMPILED_JS castBool require("libagda").checkTypeof("bool") #-}
-
-castChar : JSValue → Char
-castChar = String▹Char ∘ castString
 
 postulate nullJS : JSValue
 {-# COMPILED_JS nullJS null #-}
@@ -200,10 +215,10 @@ postulate nullJS : JSValue
 postulate undefinedJS : JSValue
 {-# COMPILED_JS undefinedJS undefined #-}
 
-postulate _·[_] : JSValue → JSValue → JSValue
+postulate _·[_] : JSValue → JSValue → JS[ JSValue ]
 {-# COMPILED_JS _·[_] require("libagda").readProp #-}
 
-postulate _Array[_] : {A : Set} → JSArray A → Number → A
+postulate _Array[_] : {A : Set} → JSArray A → Number → JS[ A ]
 {-# COMPILED_JS _Array[_] function(ty) { return require("libagda").readProp; } #-}
 
 -- Writes 'msg' and 'inp' to the console and then returns `f inp`
@@ -215,9 +230,6 @@ postulate trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
 --   open import FFI.JS renaming (no-trace to trace)
 no-trace : {A B : Set}(msg : String)(inp : A)(f : A → B) → B
 no-trace _ inp f = f inp
-
-postulate throw : {A : Set} → String → A → A
-{-# COMPILED_JS throw require("libagda").throw #-}
 
 postulate is-null : JSValue → Bool
 {-# COMPILED_JS is-null function(x) { return (x == null); } #-}
@@ -243,10 +255,66 @@ data ValueView : Set₀ where
   number : Number          → ValueView
   bool   : Bool            → ValueView
   null   : ValueView
+  error  : JSValue         → ValueView
 
 -- TODO not yet tested
 postulate viewJSValue : JSValue → ValueView
 {-# COMPILED_JS viewJSValue require("libagda").viewJSValue #-}
+
+postulate assert : Bool → JS!
+{-# COMPILED_JS assert require("libagda").assert #-}
+
+postulate return : {A : Set}(x : A) → JS[ A ]
+{-# COMPILED_JS return function(A) { return function(x) { return function(cb) { return cb(x); }; }; } #-}
+
+{- Note about _>>_, _>>=_ and _>>==_, instead of using the corresponding functions
+   from libagda. It's preferable to inline their definitions as compiled
+   statements. The reason is that these COMPILED_JS statements uses a call-by-name
+   semantics with strong reduction.
+
+   The worse is for _>>_ which would have a poor run-time semantics,
+   where the second command is needlessly computed.
+   Worse given the use of partial functions which would still pretend to be pure
+   at the type level, ... this can lead to abort the program.
+-}
+
+infixr 1 _=<<_ _>>==_ _<=<_ -- _>=>_
+infixl 1 _>>=_ _>>_
+infixl 4 _<$>_ _<*>_
+
+postulate _>>=_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
+{-# COMPILED_JS _>>=_ function(A) { return function(B) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
+
+postulate _=<<_ : {A B : Set}(cb : A → JS[ B ])(cmd : JS[ A ]) → JS[ B ]
+{-# COMPILED_JS _=<<_ function(A) { return function(B) { return function(k) { return function(cmd) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
+
+postulate _<=<_ : {A B C : Set}(f : B → JS[ C ])(g : A → JS[ B ]) → A → JS[ C ]
+{-# COMPILED_JS _<=<_ function(A) { return function(B) { return function(C) { return function(f) { return function(g) { return function(x) { return function(cb) { return g(x)(function(y) { return f(y)(cb); }); }; }; }; }; }; }; } #-}
+
+postulate _<$>_ : {A B : Set}(f : A → B)(cmd : JS[ A ]) → JS[ B ]
+{-# COMPILED_JS _<$>_ function(A) { return function(B) { return function(f) { return function(cmd) { return function(cb) { return cmd(function(x) { return cb(f(x)); }); }; }; }; }; } #-}
+
+postulate _<*>_ : {A B : Set}(f : JS[ (A → B) ])(cmd : JS[ A ]) → JS[ B ]
+{-# COMPILED_JS _<*>_ function(A) { return function(B) { return function(cmd) { return function(cmd2) { return function(cb) { return cmd(function(f) { return cmd2(function(x) { return cb(f(x)); }); }); }; }; }; }; } #-}
+
+postulate _>>==_ : {A B C : Set}(cmd : JS[ A , B ])(cb : A → B → JS[ C ]) → JS[ C ]
+{-# COMPILED_JS _>>==_ function(A) { return function(B) { return function(C) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x, y) { return k(x)(y)(cb); }); }; }; }; }; }; } #-}
+
+postulate _>>_ : {A : Set} → JS! → JS[ A ] → JS[ A ]
+{-# COMPILED_JS _>>_ function(A) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(cb); }); }; }; }; } #-}
+
+postulate throw : {A : Set} → String → A → JS[ A ]
+{-# COMPILED_JS throw require("libagda").throw #-}
+
+postulate catch : {A : Set} → JS[ A ] → (String → JS[ A ]) → JS[ A ]
+{-# COMPILED_JS catch require("libagda").catch #-}
+
+decodeJSArray : {A B : Set}(arr : JSArray A)(fromElt : Number → A → B) → List B
+decodeJSArray arr fromElt = foldrArray arr [] (λ i x xs → fromElt i x ∷ xs)
+
+sequence : {A : Set} → List JS[ A ] → JS[ List A ]
+sequence []       = return []
+sequence (x ∷ xs) = (_∷_ <$> x) <*> sequence xs
 
 Bool▹String : Bool → String
 Bool▹String true  = "true"
@@ -256,13 +324,13 @@ List▹String : List Char → String
 List▹String xs = join "" (fromList xs Char▹String)
 
 String▹List : String → List Char
-String▹List s = decodeJSArray (split "" s) (λ _ → String▹Char)
+String▹List s = foldrString s [] (λ _ → _∷_)
 
 Number▹String : Number → String
 Number▹String = toString ∘ fromNumber
 
-JSArray▹ListString : {A : Set} → JSArray A → List A
-JSArray▹ListString a = decodeJSArray a (λ _ → id)
+JSArray▹List : {A : Set} → JSArray A → List A
+JSArray▹List a = decodeJSArray a (λ _ → id)
 
 fromObject : Object → JSObject
 fromObject o = objectFromList o fst snd
@@ -303,58 +371,17 @@ x >Number y = fromNumber x >JS fromNumber y
 _≥Number_ : Number → Number → Bool
 x ≥Number y = fromNumber x ≥JS fromNumber y
 
-_·«_» : JSValue → String → JSValue
-v ·« s » = v ·[ fromString s ]
-
-_·«_»A : JSValue → String → JSArray JSValue
-v ·« s »A = castJSArray (v ·« s »)
-
 trace-call : {A B : Set} → String → (A → B) → A → B
 trace-call s f x = trace s (f x) id
 
-postulate JSCmd : Set → Set
+_·«_» : JSValue → String → JS[ JSValue ]
+v ·« s » = v ·[ fromString s ]
 
-JS[_] : Set → Set
-JS[ A ] = JSCmd ((A → 𝟘) → 𝟘)
+_·«_»A : JSValue → String → JS[ JSArray JSValue ]
+v ·« s »A = castJSArray =<< v ·« s »
 
--- Old name
-Callback1 = JS[_]
-
-JS! : Set
-JS! = JS[ 𝟙 ]
-
-JS[_,_] : Set → Set → Set
-JS[ A , B ] = JSCmd ((A → B → 𝟘) → 𝟘)
-
-Callback2 = JS[_,_]
-
-postulate assert : Bool → JS!
-{-# COMPILED_JS assert require("libagda").assert #-}
-
-postulate return : {A : Set}(x : A) → JS[ A ]
-{-# COMPILED_JS return function(A) { return function(x) { return function(cb) { return cb(x); }; }; } #-}
-
-{- Note about _>>_, _>>=_ and _>>==_, instead of using the corresponding call0, call1,
-   call2 from libagda. It's preferable to inline their definitions as compiled
-   statements. The reason is that these COMPILED_JS statements uses a call-by-name
-   semantics with strong reduction.
-
-   The worse is for _>>_ which would have a poor run-time semantics,
-   where the second command is needlessly computed.
-   Worse given the use of partial functions such as throw, checkTypeof
-   cast{String,Number...} this can lead to abort the program.
--}
-
-infixr 0  _>>_ _>>=_ _>>==_
-
-postulate _>>=_ : {A B : Set}(cmd : JS[ A ])(cb : A → JS[ B ]) → JS[ B ]
-{-# COMPILED_JS _>>=_ function(A) { return function(B) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(x)(cb); }); }; }; }; }; } #-}
-
-postulate _>>==_ : {A B C : Set}(cmd : JS[ A , B ])(cb : A → B → JS[ C ]) → JS[ C ]
-{-# COMPILED_JS _>>==_ function(A) { return function(B) { return function(C) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x, y) { return k(x)(y)(cb); }); }; }; }; }; }; } #-}
-
-postulate _>>_ : {A : Set} → JS! → JS[ A ] → JS[ A ]
-{-# COMPILED_JS _>>_ function(A) { return function(cmd) { return function(k) { return function(cb) { return cmd(function(x) { return k(cb); }); }; }; }; } #-}
+castChar : JSValue → JS[ Char ]
+castChar = String▹Char <=< castString
 
 -- -}
 -- -}
