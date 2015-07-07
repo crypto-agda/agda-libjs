@@ -119,6 +119,12 @@ postulate substring : String → Number → Number → String
 postulate substring1 : String → Number → String
 {-# COMPILED_JS substring1 require("libagda").substring1 #-}
 
+postulate String▹JSArray : String → JSArray Char
+{-# COMPILED_JS String▹JSArray function(s) { return s.split(""); } #-}
+
+postulate JSArray▹String : JSArray Char → String
+{-# COMPILED_JS JSArray▹String function(a) { return a.join(""); } #-}
+
 postulate fromList : {A B : Set}(xs : List A)(fromElt : A → B) → JSArray B
 {-# COMPILED_JS fromList require("libagda").fromList #-}
 

@@ -46,11 +46,11 @@ module _ {A : Set} (_≤_ : A → A → Bool) where
 merge-sort-string : String → String → String
 merge-sort-string s₀ s₁ = List▹String (merge-sort-list _≤Char_ (String▹List s₀) (String▹List s₁))
 
-mapJSArray : (JSArray String → JSArray String) → JSValue → JSValue
-mapJSArray f v = fromString (join "" ∘ f ∘ split "" ∘ castString $ v)
+mapStringChars : (JSArray Char → JSArray Char) → JSValue → JSValue
+mapStringChars f = fromString ∘ JSArray▹String ∘ f ∘ String▹JSArray ∘ toString
 
 reverser : URI → JSProc
-reverser d = recv d λ s → send d (mapJSArray JS.reverse s) end
+reverser d = recv d λ s → send d (mapStringChars JS.reverse s) end
 
 adder : URI → JSProc
 adder d = recv d λ s₀ → recv d λ s₁ → send d (s₀ +JS s₁) end
@@ -69,7 +69,7 @@ module _ (adder-addr reverser-addr : URI)(s : JSValue) where
     end
 
 str-sorter₀ : URI → JSProc
-str-sorter₀ d = recv d λ s → send d (mapJSArray sort s) end
+str-sorter₀ d = recv d λ s → send d (mapStringChars sort s) end
 
 str-sorter-client : ∀ {D} → D → JSValue → Proc D JSValue
 str-sorter-client d s = send d s $ recv d λ _ → end
@@ -78,11 +78,11 @@ module _ (upstream helper₀ helper₁ : URI) where
   str-merger : JSProc
   str-merger =
     recv upstream λ s →
-    send helper₀ (fromString (take-half (castString s))) $
-    send helper₁ (fromString (drop-half (castString s))) $
+    send helper₀ (fromString (take-half (toString s))) $
+    send helper₁ (fromString (drop-half (toString s))) $
     recv helper₀ λ ss₀ →
     recv helper₁ λ ss₁ →
-    send upstream (fromString (merge-sort-string (castString ss₀) (castString ss₁)))
+    send upstream (fromString (merge-sort-string (toString ss₀) (toString ss₁)))
     end
 
 dyn-merger : URI → (URI → JSProc) → JSProc
